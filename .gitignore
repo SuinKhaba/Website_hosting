@@ -1,0 +1,22 @@
+# Ignore node_modules in any subdirectory
+node_modules/
+
+# Ignore build output (React build)
+build/
+dist/
+
+# Ignore environment files
+.env
+
+# Ignore log files and system artifacts
+*.log
+.DS_Store
+Thumbs.db
+
+# Ignore optional uploads or temp folders
+uploads/
+downloads/
+
+# Ignore IDE/editor folders
+.vscode/
+.idea/
