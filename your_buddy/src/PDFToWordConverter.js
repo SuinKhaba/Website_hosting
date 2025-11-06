@@ -15,7 +15,7 @@ function PDFToWordConverter() {
     formData.append("pdfFile", file);
 
     try {
-      const response = await fetch("http://localhost:5000/api/pdf-to-word", {
+      const response = await fetch("https://website-hosting-b5bz.onrender.com", {
         method: "POST",
         body: formData,
       });
