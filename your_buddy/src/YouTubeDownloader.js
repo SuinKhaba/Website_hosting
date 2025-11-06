@@ -11,7 +11,7 @@ function YouTubeDownloader() {
         setError("");
         setDownloadLink("");
         try {
-            const response = await fetch("http://localhost:5000/api/download", {
+            const response = await fetch("https://website-hosting-b5bz.onrender.com/api/download", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ youtubeUrl }),
