@@ -21,11 +21,10 @@ app.use(express.json());
 
 const upload = multer({ dest: "uploads/" });
 
-// PDF to Word Conversion Route with full logging
+// PDF to Word Conversion Route with the corrected Python script path
 app.post("/api/pdf-to-word", upload.single("pdfFile"), (req, res) => {
     console.log("PDF-to-Word conversion attempted at:", new Date().toISOString());
 
-    // Log request file info
     if (!req.file) {
         console.log("No file uploaded!");
         return res.status(400).send("No file uploaded");
@@ -35,16 +34,16 @@ app.post("/api/pdf-to-word", upload.single("pdfFile"), (req, res) => {
     const inputPdf = req.file.path;
     const outputDocx = inputPdf + ".docx";
 
+    // The fix: script is referenced as Backend/convert.py
     execFile(
         process.env.PYTHON_PATH,
-        [process.env.PDF_SCRIPT, inputPdf, outputDocx],
+        ["Backend/" + process.env.PDF_SCRIPT, inputPdf, outputDocx],
         (error, stdout, stderr) => {
             console.log("execFile finished:", { error, stdout, stderr });
             if (error || (stderr && stderr.includes("ERROR:"))) {
                 console.error("Conversion error:", error, stderr);
                 return res.status(500).send("Conversion error: " + stderr + (error ? error.message : ""));
             }
-            // Always use the last line from Python output
             const docxPath = stdout.trim().split('\n').pop();
             console.log("docxPath resolved:", docxPath);
             fs.stat(docxPath, (statErr, stats) => {
@@ -63,15 +62,13 @@ app.post("/api/pdf-to-word", upload.single("pdfFile"), (req, res) => {
     );
 });
 
-// Example YouTube downloader route (you can add your real logic)
+// Example YouTube downloader route (dummy response for testing)
 app.post("/api/download", (req, res) => {
     const { youtubeUrl } = req.body;
     if (!youtubeUrl) {
         return res.status(400).json({ error: "No YouTube URL provided" });
     }
     console.log("YouTube download attempted for:", youtubeUrl);
-
-    // Dummy response for connectivity check
     res.json({ status: "Received", youtubeUrl });
 });
 
