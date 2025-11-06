@@ -9,52 +9,28 @@ const fs = require("fs");
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Make sure uploads directory exists
+const uploadsDir = path.join(__dirname, "uploads");
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir);
+    console.log("Created uploads directory:", uploadsDir);
+}
+
 app.use(cors());
 app.use(express.json());
 
 const upload = multer({ dest: "uploads/" });
 
-// YouTube Download Route
-app.post("/api/download", (req, res) => {
-    const { youtubeUrl } = req.body;
-    if (!youtubeUrl) {
-        return res.status(400).json({ error: "No YouTube URL provided" });
-    }
-    const outputDir = path.join(__dirname, process.env.DOWNLOAD_DIR);
-
-    execFile(
-        process.env.PYTHON_PATH,
-        [process.env.YT_SCRIPT, youtubeUrl, outputDir],
-        (error, stdout, stderr) => {
-            if (error || (stderr && stderr.includes("ERROR:"))) {
-                return res
-                    .status(500)
-                    .json({ error: "Download failed: " + (stderr || error.message) });
-            }
-            // Always use the last line (absolute path from Python script)
-            const filePath = stdout.trim().split('\n').pop();
-            const filename = path.basename(filePath);
-
-            fs.stat(filePath, (statErr, stats) => {
-                if (statErr || !stats.isFile() || path.extname(filePath) !== ".mp4") {
-                    return res.status(500).json({ error: "File not found or not a video" });
-                }
-                res.setHeader("Content-Type", "video/mp4");
-                res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-                res.sendFile(path.resolve(filePath), (err) => {
-                    if (err) {
-                        console.error("Failed to send file:", err);
-                    }
-                    // Optionally clean up: fs.unlink(filePath, () => {});
-                });
-            });
-        }
-    );
-});
-
-// PDF to Word Conversion Route
+// PDF to Word Conversion Route with full logging
 app.post("/api/pdf-to-word", upload.single("pdfFile"), (req, res) => {
-    if (!req.file) return res.status(400).send("No file uploaded");
+    console.log("PDF-to-Word conversion attempted at:", new Date().toISOString());
+
+    // Log request file info
+    if (!req.file) {
+        console.log("No file uploaded!");
+        return res.status(400).send("No file uploaded");
+    }
+    console.log("Received file:", req.file);
 
     const inputPdf = req.file.path;
     const outputDocx = inputPdf + ".docx";
@@ -63,24 +39,40 @@ app.post("/api/pdf-to-word", upload.single("pdfFile"), (req, res) => {
         process.env.PYTHON_PATH,
         [process.env.PDF_SCRIPT, inputPdf, outputDocx],
         (error, stdout, stderr) => {
+            console.log("execFile finished:", { error, stdout, stderr });
             if (error || (stderr && stderr.includes("ERROR:"))) {
-                return res.status(500).send("Conversion error");
+                console.error("Conversion error:", error, stderr);
+                return res.status(500).send("Conversion error: " + stderr + (error ? error.message : ""));
             }
-            // Use last line of Python output (absolute .docx path)
+            // Always use the last line from Python output
             const docxPath = stdout.trim().split('\n').pop();
-
+            console.log("docxPath resolved:", docxPath);
             fs.stat(docxPath, (statErr, stats) => {
                 if (statErr || !stats.isFile()) {
+                    console.error("Converted file not found or not a file:", docxPath, statErr);
                     return res.status(500).send("Converted file not found");
                 }
                 res.setHeader("Content-Disposition", 'attachment; filename="converted.docx"');
                 res.sendFile(path.resolve(docxPath), (err) => {
+                    if (err) console.error("Error sending file:", err);
                     fs.unlink(inputPdf, () => {});
                     fs.unlink(docxPath, () => {});
                 });
             });
         }
     );
+});
+
+// Example YouTube downloader route (you can add your real logic)
+app.post("/api/download", (req, res) => {
+    const { youtubeUrl } = req.body;
+    if (!youtubeUrl) {
+        return res.status(400).json({ error: "No YouTube URL provided" });
+    }
+    console.log("YouTube download attempted for:", youtubeUrl);
+
+    // Dummy response for connectivity check
+    res.json({ status: "Received", youtubeUrl });
 });
 
 app.listen(PORT, () => {
